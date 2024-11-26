@@ -1,0 +1,54 @@
+How to check if the Blockchain feed is working
+
+$ journalctl --user -u feed_bulk_from_db
+
+Scroll to the end of the output and see if it looks like this:
+
+Nov 21 01:01:35 lightecho-prod feed_bulk_from_db.sh[1264490]: [2024-11-21 01:01:35,113 feed_bulk_from_db.py:104 INFO] Adding 3 prices to the blockchain with timestamp 1732150800
+Nov 21 01:01:35 lightecho-prod feed_bulk_from_db.sh[1264490]: [2024-11-21 01:01:35,137 feed_bulk_from_db.py:127 INFO] cli.py --oracle-contract-id CDOR3QD27WAAF4TK4MO33TGQXR6RPNANNVLOY277W2XVV6ZVJ6X6X42T oracle add_prices_base64 W3sic291cmNlIjogMSwgImFzc2V0X3R5cGUiOiAib3RoZXIiLCAiYXNzZXQiOiAiVVNEIiwgInByaWNlIjogIjAuMjQzMjUiLCAidGltZXN0YW1wIjogMTczMjE1MDgwMH0sIHsic291cmNlIjogMSwgImFzc2V0X3R5cGUiOiAib3RoZXIiLCAiYXNzZXQiOiAiRVVSIiwgInByaWNlIjogIjAuMjMiLCAidGltZXN0YW1wIjogMTczMjE1MDgwMH0sIHsic291cmNlIjogMCwgImFzc2V0X3R5cGUiOiAib3RoZXIiLCAiYXNzZXQiOiAiVVNEIiwgInByaWNlIjogIjAuMjQzMTAwMDAiLCAidGltZXN0YW1wIjogMTczMjE1MDgwMH1d
+Nov 21 01:01:53 lightecho-prod feed_bulk_from_db.sh[1264490]: [2024-11-21 01:01:53,072 feed_bulk_from_db.py:129 INFO] Output:
+Nov 21 01:01:53 lightecho-prod feed_bulk_from_db.sh[1264490]: None
+Nov 21 01:01:53 lightecho-prod feed_bulk_from_db.sh[1264490]: Horizon tx:
+Nov 21 01:01:53 lightecho-prod feed_bulk_from_db.sh[1264490]: https://*****
+Nov 21 01:01:53 lightecho-prod feed_bulk_from_db.sh[1264490]: Success!
+Nov 21 01:02:06 lightecho-prod systemd[885097]: feed_bulk_from_db.service: Consumed 8.427s CPU time.
+
+If there are errors, these are the most common causes:
+- (only for testnet) Account not found, caused by testnet resets
+    - To fix, recreate Testnet accounts, redeploy contract, and reconfigure CLI
+- Low XLM in account used to invoke Soroban RPC
+    - To fix, add more XLM to the account
+- Asset has no u32 value: {asset_type} {asset}. Make sure to add a u32 value for this asset in ASSETS_TO_ASSET_U32
+    - We have a hardcoded list of supported assets in our Python library, you
+    probably need to add the new asset there, then refresh CLI Poetry dependencies
+    to propagate your changes to the CLI:
+        - https://github.com/bp-ventures/lightecho-stellar-oracle/blob/7c09b67eb8c58a1ea48f5bb5d62ff892f4811292/oracle-sdk/python/lightecho_stellar_oracle.py#L32
+- ValueError, caused by a breaking change in Soroban and Python SDK is outdated
+    - Upgrade to latest Python SDK and fix any issues in code
+
+------------------------------------------------
+How to check if prices are in correct timestamps
+
+To check in blockchain directly, you can use the CLI:
+$ cd cd oracle-onchain/sep40/cli
+$ ./cli oracle lastprice other USD
+Output:
+{'price': '0.2431', 'timestamp': 1732150800}
+Horizon tx:
+5bf36477826f61b707093bb89d79c541adaa10e7ee59245c8cb669a982972d40
+Success!
+
+To check our internal offchain database (which is the source of info for
+the blockchain), you can check the sqlite db:
+$ cd oracle-onchain/api
+$ sqlite3 db.sqlite3 "select * from prices order by created_at desc limit 5"
+5848648|2024-11-21 01:10:14|2024-11-21 01:10:14|10m|active|1|other|XLMUSD|0.2427965|0.2427965|0.2427965|XLM|USD|1|jd2DyCw
+5848649|2024-11-21 01:10:14|2024-11-21 01:10:14|10m|active|1|other|XLMEUR|0.229593|0.229593|0.229593|XLM|EUR|1|jd2DyCw
+5848647|2024-11-21 01:10:10|2024-11-21 01:10:10|10m|active|0|other|XLMUSD|0.24260000|0.24260000|0.24260000|XLM|USD|1|jd2DyCw
+5848645|2024-11-21 01:08:15|2024-11-21 01:08:15|10m|active|1|other|XLMUSD|0.2436545|0.2436545|0.2436545|XLM|USD|1|jd2DyCw
+5848646|2024-11-21 01:08:15|2024-11-21 01:08:15|10m|active|1|other|XLMEUR|0.229372|0.229372|0.229372|XLM|EUR|1|jd2DyCw
+
+------------------------------------------------
+How to restart/update an existing deployment
+
+$ ./run deploy

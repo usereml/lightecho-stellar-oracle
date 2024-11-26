@@ -1,0 +1,9 @@
+WORK REPORT 20241120
+
+1) oracle
+    1.1) testnet
+        1.1.1) recreated TESTNET accounts and updated configs in server, Testnet oracle is working now, contract ID: CBJ5UIG6O3ZCNOA4C5II36PIB43YJAKIDBX5YAXFHGAXA2OERZ4LMITR
+        1.1.2) TODO: setup some alerts
+    1.2) prod
+        1.1.1) oracle feed DB -> Blockchain working, but DB outdated. Cause: API 502 Bad Gateway response from API because Flask server was not running. Fixed by starting Flask server via "ttm start server"
+        1.1.2) TODO: setup some alerts

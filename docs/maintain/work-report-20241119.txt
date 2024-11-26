@@ -1,0 +1,8 @@
+WORK REPORT 20241119
+
+1) oracle
+    1.1) testnet
+        1.1.1) not working because accounts don't exist in Blockchain due to testnet reset
+    1.2) prod
+        1.1.1) not working due to insufficient RAM in server, cause: Redis
+        1.1.2) attempted deleting problematic Redis key but got error, probably due to insufficient memory as well
